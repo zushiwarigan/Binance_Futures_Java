@@ -4,6 +4,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
+import okio.ByteString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,11 +107,14 @@ public class WebSocketConnection extends WebSocketListener {
         super.onMessage(webSocket, text);
         lastReceivedTime = System.currentTimeMillis();
 
-        log.debug("[On Message]:{}", text);
+        log.info("[On Message]:{}", text);
         try {
             JsonWrapper jsonWrapper = JsonWrapper.parseFromString(text);
 
-            if (jsonWrapper.containKey("result") || jsonWrapper.containKey("id")) {
+            if (jsonWrapper.containKey("error") || jsonWrapper.containKey("result") || jsonWrapper.containKey("id")) {
+                if (jsonWrapper.containKey("error"))
+                    log.error("error in socket: "+text);
+
                 // onReceiveAndClose(jsonWrapper);
             } else {
                 onReceiveAndClose(jsonWrapper);
@@ -121,6 +125,12 @@ public class WebSocketConnection extends WebSocketListener {
             closeOnError();
         }
     }
+
+    public void onMessage(WebSocket webSocket, ByteString bytes) {
+        super.onMessage(webSocket,bytes);
+        log.info("[On Binary Message]:{}", bytes.size());
+    }
+
 
     private void onError(String errorMessage, Throwable e) {
         if (request.errorHandler != null) {

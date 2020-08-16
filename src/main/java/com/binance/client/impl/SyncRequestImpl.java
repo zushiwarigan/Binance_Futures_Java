@@ -93,10 +93,24 @@ public class SyncRequestImpl implements SyncRequestClient {
                 timeInForce, quantity, price, reduceOnly, 
                 newClientOrderId, stopPrice, workingType,newOrderRespType));
     }
+
+    public void postOrderAsync(String symbol, OrderSide side, PositionSide positionSide, OrderType orderType,
+                        TimeInForce timeInForce, String quantity, String price, String reduceOnly,
+                        String newClientOrderId, String stopPrice, WorkingType workingType, NewOrderRespType newOrderRespType, RestApiInvoker.RestCallback<Order> callback){
+        RestApiInvoker.callAsync(requestImpl.postOrder(symbol, side, positionSide, orderType,
+                timeInForce, quantity, price, reduceOnly,
+                newClientOrderId, stopPrice, workingType,newOrderRespType),callback);
+
+    }
+
     
     @Override
     public Order cancelOrder(String symbol, Long orderId, String origClientOrderId) {
         return RestApiInvoker.callSync(requestImpl.cancelOrder(symbol, orderId, origClientOrderId));
+    }
+
+    public void cancelOrderAsync(String symbol, Long orderId, String origClientOrderId, RestApiInvoker.RestCallback<Order> callback) {
+        RestApiInvoker.callAsync(requestImpl.cancelOrder(symbol, orderId, origClientOrderId),callback);
     }
 
     @Override
@@ -139,7 +153,12 @@ public class SyncRequestImpl implements SyncRequestClient {
     public Order getOrder(String symbol, Long orderId, String origClientOrderId) {
         return RestApiInvoker.callSync(requestImpl.getOrder(symbol, orderId, origClientOrderId));
     }
-    
+
+    public void getOrderAsync(String symbol, Long orderId, String origClientOrderId, RestApiInvoker.RestCallback<Order> callback){
+        RestApiInvoker.callAsync(requestImpl.getOrder(symbol, orderId, origClientOrderId),callback);
+    }
+
+
     @Override
     public List<Order> getOpenOrders(String symbol) {
         return RestApiInvoker.callSync(requestImpl.getOpenOrders(symbol));

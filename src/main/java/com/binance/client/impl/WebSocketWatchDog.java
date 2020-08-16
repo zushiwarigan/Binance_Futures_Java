@@ -15,6 +15,7 @@ class WebSocketWatchDog {
     private final CopyOnWriteArrayList<WebSocketConnection> TIME_HELPER = new CopyOnWriteArrayList<>();
     private final SubscriptionOptions options;
     private static final Logger log = LoggerFactory.getLogger(WebSocketConnection.class);
+    private boolean pingSent = false;
 
     WebSocketWatchDog(SubscriptionOptions subscriptionOptions) {
         this.options = Objects.requireNonNull(subscriptionOptions);
@@ -27,8 +28,17 @@ class WebSocketWatchDog {
                     if (options.isAutoReconnect()) {
                         long ts = System.currentTimeMillis() - connection.getLastReceivedTime();
                         if (ts > options.getReceiveLimitMs()) {
-                            log.warn("[Sub][" + connection.getConnectionId() + "] No response from server");
-                            connection.reConnect(options.getConnectionDelayOnFailure());
+                            if (!pingSent) {
+                                connection.send("{\"method\" : \"GET_PROPERTY\"}");
+                                log.debug("ping sent");
+                                pingSent = true;
+                            }
+                            if (ts>options.getReceiveLimitMs()*2) {
+                                log.warn("[Sub][" + connection.getConnectionId() + "] No response from server");
+                                connection.reConnect(options.getConnectionDelayOnFailure());
+                            }
+                        } else {
+                            pingSent = false;
                         }
                     }
                 } else if (connection.getState() == ConnectionState.DELAY_CONNECT) {

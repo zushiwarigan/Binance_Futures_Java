@@ -1,19 +1,20 @@
 package com.binance.client.impl;
 
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.WebSocket;
-import okhttp3.WebSocketListener;
+import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.binance.client.exception.BinanceApiException;
 import com.binance.client.impl.utils.JsonWrapper;
 
-abstract class RestApiInvoker {
+import java.io.IOException;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+
+public abstract class RestApiInvoker {
 
     private static final Logger log = LoggerFactory.getLogger(RestApiInvoker.class);
+//    private static final OkHttpClient client = new okhttp3.OkHttpClient.Builder().pingInterval(30, TimeUnit.SECONDS).build();
     private static final OkHttpClient client = new OkHttpClient();
 
     static void checkResponse(JsonWrapper json) {
@@ -72,8 +73,50 @@ abstract class RestApiInvoker {
         }
     }
 
+    public interface RestCallback<T>{
+        void onFailure(Throwable e);
+        void onResponse(T t);
+    }
+
+    static <T> void callAsync(RestApiRequest<T> request, RestCallback<T> callback) {
+        try {
+            log.debug("Request URL " + request.request.url());
+            client.newCall(request.request).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    callback.onFailure(e);
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    if (response==null || response.body()==null){
+                        callback.onFailure(new NullPointerException("null body or response"));
+                        return;
+                    }
+                    String str = response.body().string();
+                    response.close();
+                    JsonWrapper jsonWrapper = JsonWrapper.parseFromString(str);
+                    try {
+                        checkResponse(jsonWrapper);
+                    } catch (Exception e) {
+                        callback.onFailure(e);
+                        return;
+                    }
+                    callback.onResponse(request.jsonParser.parseJson(jsonWrapper));
+
+                }
+            });
+        } catch (BinanceApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BinanceApiException(BinanceApiException.ENV_ERROR,
+                    "[Invoking] Unexpected error: " + e.getMessage());
+        }
+    }
+
     static WebSocket createWebSocket(Request request, WebSocketListener listener) {
-        return client.newWebSocket(request, listener);
+        WebSocket socket = client.newWebSocket(request, listener);
+        return socket;
     }
 
 }

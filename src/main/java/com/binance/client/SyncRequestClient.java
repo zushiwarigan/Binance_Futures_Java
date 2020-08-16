@@ -2,6 +2,7 @@ package com.binance.client;
 
 import com.alibaba.fastjson.JSONObject;
 import com.binance.client.impl.BinanceApiInternalFactory;
+import com.binance.client.impl.RestApiInvoker;
 import com.binance.client.model.ResponseResult;
 import com.binance.client.model.market.*;
 import com.binance.client.model.enums.*;
@@ -155,12 +156,17 @@ public interface SyncRequestClient {
             TimeInForce timeInForce, String quantity, String price, String reduceOnly,
             String newClientOrderId, String stopPrice, WorkingType workingType, NewOrderRespType newOrderRespType);
 
+    void postOrderAsync(String symbol, OrderSide side, PositionSide positionSide, OrderType orderType,
+            TimeInForce timeInForce, String quantity, String price, String reduceOnly,
+            String newClientOrderId, String stopPrice, WorkingType workingType, NewOrderRespType newOrderRespType, RestApiInvoker.RestCallback<Order> callback);
+
     /**
      * Cancel an active order.
      *
      * @return Order.
      */
     Order cancelOrder(String symbol, Long orderId, String origClientOrderId);
+    void cancelOrderAsync(String symbol, Long orderId, String origClientOrderId, RestApiInvoker.RestCallback<Order> callback);
 
     /**
      * Cancel all open orders.
@@ -225,6 +231,7 @@ public interface SyncRequestClient {
      * @return Order status.
      */
     Order getOrder(String symbol, Long orderId, String origClientOrderId);
+    void getOrderAsync(String symbol, Long orderId, String origClientOrderId, RestApiInvoker.RestCallback<Order> callback);
 
     /**
      * Get all open orders on a symbol. Careful when accessing this with no symbol.
